@@ -4,14 +4,15 @@
   "main": "gulpfile.js",
   "dependencies": {
     "csv": "^0.4.5",
-    "gulp": "^3.9.0",
     "del": "^1.2.0",
-    "gulp-csv2json": "https://github.com/zhangwei/gulp-csv2json.git",
+    "gulp": "^3.9.0",
     "gulp-convert-encoding": "^0.0.3",
-    "path": "^0.11.14",
+    "gulp-csv2json": "https://github.com/zhangwei/gulp-csv2json.git",
+    "gulp-download": "^0.0.1",
     "gulp-rename": "^1.2.2",
     "gulp-unzip": "^0.1.3",
-    "gulp-download": "^0.0.1"
+    "iterate-files": "^0.1.1",
+    "path": "^0.11.14"
   },
   "devDependencies": {},
   "scripts": {

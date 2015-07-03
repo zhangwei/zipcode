@@ -8,6 +8,8 @@ var rename = require('gulp-rename');
 var del = require('del');
 var convertEncoding = require('gulp-convert-encoding');
 var fs = require('fs');
+var iterateFiles = require("iterate-files"),
+    path = require("path");
 
 // Rerun the task download ken_all.zip
 gulp.task('download', function () {
@@ -23,30 +25,52 @@ gulp.task('download', function () {
 
 // Rerun the task unzip ken_all.zip
 gulp.task('unzip', function () {
-    gulp.src("./downloads/*.zip")
-        .pipe(unzip())
-        .pipe(gulp.dest('./downloads/'));
+    // Load all javascript files in the test folder or any of their sub folders
+    iterateFiles(path.join(process.cwd(), "./downloads"), function (fileName) {
+        console.log(fileName);
+        return gulp.src(fileName)
+            .pipe(unzip())
+            .pipe(gulp.dest('./downloads/'));
+    }, function (err) {
+        // run code when all files have been found recursively
+        if(err){
+            console.log(err);
+        }
+    }, /.zip$/)
 });
 
 // Rerun the task unzip ken_all.zip
 gulp.task('convert_encoding', function () {
-    return gulp.src('./downloads/*.CSV')
-        .pipe(convertEncoding({from: 'cp932', to: 'utf8'}))
-        .on('error', function (err) {
+    // Load all javascript files in the test folder or any of their sub folders
+    iterateFiles(path.join(process.cwd(), "./downloads"), function (fileName) {
+        console.log(fileName);
+        return gulp.src(fileName)
+            .pipe(convertEncoding({from: 'cp932', to: 'utf8'}))
+            .pipe(rename({extname: '.csv'}))
+            .pipe(gulp.dest('./tmp/'));
+    }, function (err) {
+        // run code when all files have been found recursively
+        if(err){
             console.log(err);
-        })
-        .pipe(rename({extname: '.csv'}))
-        .pipe(gulp.dest('./tmp/'));
+        }
+    }, /.CSV$/)
+
 });
 
 gulp.task('convert2json', function () {
-    gulp.src('./tmp/*.csv')
-        .pipe(csv2json({'group_key': 3, 'pickup': {'postcode': 3, 'state': 7, 'city': 8, 'address': 9}}))
-        .on('error', function (err) {
+    // Load all javascript files in the test folder or any of their sub folders
+    iterateFiles(path.join(process.cwd(), "./tmp"), function (fileName) {
+        console.log(fileName);
+        return gulp.src(fileName)
+            .pipe(csv2json({'group_key': 3, 'pickup': {'postcode': 3, 'state': 7, 'city': 8, 'address': 9}}))
+            .pipe(rename({extname: '.json'}))
+            .pipe(gulp.dest('./dist/'));
+    }, function (err) {
+        // run code when all files have been found recursively
+        if(err){
             console.log(err);
-        })
-        .pipe(rename({extname: '.json'}))
-        .pipe(gulp.dest('./dist/'));
+        }
+    }, /.csv$/)
 });
 
 gulp.task('clean', function (cb) {
