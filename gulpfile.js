@@ -12,7 +12,7 @@ var iterateFiles = require("iterate-files"),
     path = require("path");
 
 // Rerun the task download ken_all.zip
-gulp.task('download', function () {
+gulp.task('download', function (cb) {
     var rows = fs.readFileSync('download_urls.txt').toString().split("\n");
     for (var i in rows) {
         //download('http://www.post.japanpost.jp/zipcode/dl/kogaki/zip/13tokyo.zip')
@@ -21,10 +21,11 @@ gulp.task('download', function () {
                 .pipe(gulp.dest("downloads/"));
         }
     }
+    cb();
 });
 
 // Rerun the task unzip ken_all.zip
-gulp.task('unzip', function () {
+gulp.task('unzip', function (cb) {
     // Load all javascript files in the test folder or any of their sub folders
     iterateFiles(path.join(process.cwd(), "./downloads"), function (fileName) {
         console.log(fileName);
@@ -35,29 +36,33 @@ gulp.task('unzip', function () {
         // run code when all files have been found recursively
         if(err){
             console.log(err);
+            cb(err);
         }
+        cb();
     }, /.zip$/)
 });
 
 // Rerun the task unzip ken_all.zip
-gulp.task('convert_encoding', function () {
+gulp.task('convert_encoding', function (cb) {
     // Load all javascript files in the test folder or any of their sub folders
     iterateFiles(path.join(process.cwd(), "./downloads"), function (fileName) {
         console.log(fileName);
         return gulp.src(fileName)
-            .pipe(convertEncoding({from: 'cp932', to: 'utf8'}))
+            .pipe(convertEncoding({from: "cp932", to: "utf8"}))
             .pipe(rename({extname: '.csv'}))
             .pipe(gulp.dest('./tmp/'));
     }, function (err) {
         // run code when all files have been found recursively
         if(err){
             console.log(err);
+            cb(err);
         }
+        cb();
     }, /.CSV$/)
 
 });
 
-gulp.task('convert2json', function () {
+gulp.task('convert2json', function (cb) {
     // Load all javascript files in the test folder or any of their sub folders
     iterateFiles(path.join(process.cwd(), "./tmp"), function (fileName) {
         console.log(fileName);
@@ -69,7 +74,9 @@ gulp.task('convert2json', function () {
         // run code when all files have been found recursively
         if(err){
             console.log(err);
+            cb(err);
         }
+        cb();
     }, /.csv$/)
 });
 

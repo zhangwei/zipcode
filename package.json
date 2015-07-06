@@ -6,7 +6,7 @@
     "csv": "^0.4.5",
     "del": "^1.2.0",
     "gulp": "^3.9.0",
-    "gulp-convert-encoding": "^0.0.3",
+    "gulp-convert-encoding": "https://github.com/zhangwei/gulp-convert-encoding.git",
     "gulp-csv2json": "https://github.com/zhangwei/gulp-csv2json.git",
     "gulp-download": "^0.0.1",
     "gulp-rename": "^1.2.2",
