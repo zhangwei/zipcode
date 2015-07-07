@@ -11,6 +11,9 @@ var fs = require('fs');
 var iterateFiles = require("iterate-files"),
     path = require("path");
 
+var redis = require("redis"),
+    client = redis.createClient();
+
 // Rerun the task download ken_all.zip
 gulp.task('download', function (cb) {
     var rows = fs.readFileSync('download_urls.txt').toString().split("\n");
@@ -34,7 +37,7 @@ gulp.task('unzip', function (cb) {
             .pipe(gulp.dest('./downloads/'));
     }, function (err) {
         // run code when all files have been found recursively
-        if(err){
+        if (err) {
             console.log(err);
             cb(err);
         }
@@ -53,7 +56,7 @@ gulp.task('convert_encoding', function (cb) {
             .pipe(gulp.dest('./tmp/'));
     }, function (err) {
         // run code when all files have been found recursively
-        if(err){
+        if (err) {
             console.log(err);
             cb(err);
         }
@@ -72,12 +75,46 @@ gulp.task('convert2json', function (cb) {
             .pipe(gulp.dest('./dist/'));
     }, function (err) {
         // run code when all files have been found recursively
-        if(err){
+        if (err) {
             console.log(err);
             cb(err);
         }
         cb();
     }, /.csv$/)
+});
+
+gulp.task('load2redis', function (cb) {
+
+    // Load all javascript files in the test folder or any of their sub folders
+    iterateFiles(path.join(process.cwd(), "./dist"), function (fileName) {
+        console.log(fileName);
+        var obj = JSON.parse(fs.readFileSync(fileName, "utf8"));
+        obj.forEach(function (element, index, array) {
+            //console.log('a[' + index + '] = ' + JSON.stringify(element));
+            for (var post in element) {
+                if (element.hasOwnProperty(post)) {
+                    //console.log('a[' + post + '] = ' + JSON.stringify(element[post]));
+                    //client.set(post, JSON.stringify(element[post]));
+                    client.hmset(post, element[post], function (err) {
+                        if (err) {
+                            console.log(err);
+                            cb(err);
+                        }
+                    });
+
+                }
+            }
+        });
+    }, function (err) {
+        // run code when all files have been found recursively
+        if (err) {
+            console.log(err);
+
+            cb(err);
+        }
+        cb();
+    }, /.json/);
+    client.quit();
 });
 
 gulp.task('clean', function (cb) {
