@@ -13,7 +13,7 @@ var iterateFiles = require("iterate-files"),
     path = require("path");
 var redis = require("redis");
 var sprintf = require('sprintf').sprintf;
-var tempWrite = require('temp-write');
+
 var csv = require('fast-csv');
 var fs = require('fs');
 var gutil = require('gulp-util');
@@ -79,7 +79,7 @@ gulp.task('convert2redis_command', function (cb) {
                 .fromStream(file)
                 .on("data", function (record) {
                     var line = sprintf(
-                        "HMSET jpzip::%s state %s city %s address %s\n",
+                        "HMSET jp_zip::%s state %s city %s address %s\n",
                         record[2],
                         record[6],
                         record[7],
@@ -89,7 +89,7 @@ gulp.task('convert2redis_command', function (cb) {
                 .on("end", function () {
                     file.contents = store.toBuffer();
                     callback(null, file);
-                    gutil.log('gulp-csv2json:', gutil.colors.green('✔ ') + file.relative);
+                    gutil.log('convert2redis:', gutil.colors.green('✔ ') + file.relative);
                 });
 
 
