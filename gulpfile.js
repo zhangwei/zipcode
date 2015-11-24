@@ -1,32 +1,22 @@
 var gulp = require('gulp');
-
-
-var download = require("gulp-download");
-var unzip = require("gulp-unzip");
-
-var through2 = require('through2');
-var rename = require('gulp-rename');
-var del = require('del');
-var convertEncoding = require('gulp-convert-encoding');
-
-var redis = require("redis");
-var sprintf = require('sprintf').sprintf;
-
-var csv = require('fast-csv');
 var gutil = require('gulp-util');
-var Buffers = require('buffers');
 
 gulp.task('clean', function (callback) {
+    var del = require('del');
     del(['./dist/*', './downloads/*', './tmp/*'], callback);
 });
 
 gulp.task('download', ['clean'], function (callback) {
+    var download = require("gulp-download");
     download('http://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip')
         .pipe(gulp.dest("downloads/"))
         .on('end', callback);
 });
 
-gulp.task('prepare', ['download'], function (callback) {
+gulp.task('prepare', function (callback) {
+    var unzip = require("gulp-unzip");
+    var convertEncoding = require('gulp-convert-encoding');
+    var rename = require('gulp-rename');
     gulp.src('./downloads/*.zip')
         .pipe(unzip())
         .pipe(convertEncoding({from: "cp932", to: "utf8"}))
@@ -35,32 +25,48 @@ gulp.task('prepare', ['download'], function (callback) {
         .on('end', callback);
 });
 
-gulp.task('export2redis', ['prepare'],  function (callback) {
+gulp.task('csv2json', ['prepare'], function (callback) {
+    var through2 = require('through2');
+    var replace = require('gulp-replace');
+    var rename = require('gulp-rename');
+    var fs = require('fs');
+    var csv = require('fast-csv');
+    var Buffers = require('buffers');
+    var sprintf = require('sprintf').sprintf;
+
     gulp.src('./tmp/*.csv')
-        .pipe(through2.obj(function (file, enc, callback) {
+        .pipe(through2.obj(function (chunk, enc, callback) {
+            var stream = fs.createReadStream(chunk.path);
             var store = Buffers();
 
             csv
-                .fromStream(file)
+                .fromStream(stream)
                 .on("data", function (record) {
                     var line = sprintf(
-                        "HMSET jp:zip:%s zipcode %s state %s city %s address %s\n",
-                        record[2],
+                        '"%s":["%s","%s","%s"],\n',
+                        //record[2],
                         record[2],
                         record[6],
                         record[7],
                         record[8]);
+
                     store.push(new Buffer(line));
                 })
                 .on("end", function () {
-                    file.contents = store.toBuffer();
-                    callback(null, file);
-                    gutil.log('convert2redis:', gutil.colors.green('✔ ') + file.relative);
+                    chunk.contents = store.toBuffer();
+                    chunk.contents = Buffer.concat([
+                        new Buffer('{', 'utf8'),
+                        chunk.contents.slice(0, chunk.contents.length - 2),
+                        new Buffer('}', 'utf8')
+                    ]);
+                    callback(null, chunk);
+                    gutil.log('csv2json:', gutil.colors.green('✔ ') + chunk.relative);
                 });
         }))
-        .pipe(rename({basename: 'aloha', extname: '.txt'}))
+        .pipe(replace("以下に掲載がない場合", ""))
+        .pipe(rename({basename: 'all', extname: '.json'}))
         .pipe(gulp.dest('./dist/'))
         .on('end', callback);
 });
 
-gulp.task('default', ['export2redis']);
+gulp.task('default', ['prepare', 'csv2json']);
