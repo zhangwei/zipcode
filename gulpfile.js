@@ -7,8 +7,12 @@ gulp.task('clean', function (callback) {
 });
 
 gulp.task('download', ['clean'], function (callback) {
+    var rename = require('gulp-rename');
     var download = require("gulp-download");
-    download('http://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip')
+    //download('http://www.post.japanpost.jp/zipcode/dl/kogaki/zip/ken_all.zip')
+    //download('http://zipcloud.ibsnet.co.jp/zipcodedata/download?di=1446192625445')
+    download('http://zipcloud.ibsnet.co.jp/zipcodedata/download?di=1446192640436') //加工済み
+        .pipe(rename({basename: 'ken_all', extname: '.zip'}))
         .pipe(gulp.dest("downloads/"))
         .on('end', callback);
 });
@@ -55,9 +59,9 @@ gulp.task('csv2json', ['prepare'], function (callback) {
                 .on("end", function () {
                     chunk.contents = store.toBuffer();
                     chunk.contents = Buffer.concat([
-                        new Buffer('{', 'utf8'),
+                        new Buffer('{\n', 'utf8'),
                         chunk.contents.slice(0, chunk.contents.length - 2),
-                        new Buffer('}', 'utf8')
+                        new Buffer('\n}', 'utf8')
                     ]);
                     callback(null, chunk);
                     gutil.log('csv2json:', gutil.colors.green('✔ ') + chunk.relative);
