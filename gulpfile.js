@@ -50,7 +50,7 @@ gulp.task('csv2json', ['prepare'], function (callback) {
                 .fromStream(rstream, {ignoreEmpty: true})
                 .on("data", function (record) {
                     var line = sprintf(
-                        '"%s":["%s","%s","%s"],\n',
+                        '"%s":["%s","%s","%s"],',
                         //record[2],
                         record[2],
                         record[6],
@@ -71,14 +71,14 @@ gulp.task('csv2json', ['prepare'], function (callback) {
                 .on("end", function () {
                     for (var bufs in files) {
                         if (files.hasOwnProperty(bufs)) {
-                            wstream = fs.createWriteStream('./tmp/' + bufs + ".json");
+                            wstream = fs.createWriteStream('./tmp/' + bufs + ".js");
                             var contents = files[bufs].toBuffer();
 
                             wstream.write(
                                 Buffer.concat([
-                                    new Buffer('{\n', 'utf8'),
-                                    contents.slice(0, contents.length - 2),
-                                    new Buffer('\n}', 'utf8')
+                                    new Buffer('$yubin({', 'utf8'),
+                                    contents.slice(0, contents.length - 1),
+                                    new Buffer('});', 'utf8')
                                 ]));
                             wstream.end();
                         }
@@ -89,7 +89,7 @@ gulp.task('csv2json', ['prepare'], function (callback) {
                 });
         }));
 
-    gulp.src('./tmp/*.json')
+    gulp.src('./tmp/*.js')
         .pipe(replace("以下に掲載がない場合", ""))
         .pipe(gulp.dest('./dist/'))
         .on('end', function (callback) {
