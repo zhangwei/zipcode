@@ -57,25 +57,14 @@ gulp.task('csv2json', ['prepare'], function (callback) {
                         record[8]);
 
                     gutil.log('csv2json:', gutil.colors.green('✔ ') + record[2]);
-
-                    var start3 = record[2];
-                    if(typeof start3 == 'undefined' || isNaN(start3)){
-                        gutil.log('csv2json:', gutil.colors.red('✘ ') + ' error:' + record[2]);
-                        this.emit("error");
-                    }else{
-                        gutil.log('csv2json:', gutil.colors.green('✔ ') + record[2] + ' done');
-                        start3 = start3.slice(0, 3);
-                        if (files.hasOwnProperty(start3)) {
-                            store = files[start3];
-                        } else {
-                            store = new Buffers();
-                            files[start3] = store;
-                        }
-                        store.push(new Buffer(line));
+                    start3 = record[2].slice(0, 3);
+                    if (files.hasOwnProperty(start3)) {
+                        store = files[start3];
+                    } else {
+                        store = new Buffers();
+                        files[start3] = store;
                     }
-                })
-                .on('error', function(err){
-                    gutil.log('csv2json:', gutil.colors.red('✘ ') + err.message);
+                    store.push(new Buffer(line));
                 })
                 .on("end", function () {
                     for (var bufs in files) {
