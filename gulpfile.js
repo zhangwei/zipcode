@@ -25,7 +25,7 @@ gulp.task('prepare', function (callback) {
         .pipe(unzip())
         .pipe(convertEncoding({from: "cp932", to: "utf8"}))
         .pipe(rename({extname: '.csv'}))
-        .pipe(gulp.dest('./tmp/'))
+        .pipe(gulp.dest('./downloads/'))
         .on('end', callback);
 });
 
@@ -38,12 +38,13 @@ gulp.task('csv2json', ['prepare'], function (callback) {
     var Buffers = require('buffers');
     var sprintf = require('sprintf').sprintf;
 
-    gulp.src('./tmp/*.csv')
+    gulp.src('./downloads/*.csv')
         .pipe(through2.obj(function (chunk, enc, callback) {
             var rstream = fs.createReadStream(chunk.path);
             var wstream = null;
             var store = null;
             var files = {};
+            var count = 0;
 
             csv
                 .fromStream(rstream, {ignoreEmpty: true})
@@ -56,7 +57,8 @@ gulp.task('csv2json', ['prepare'], function (callback) {
                         record[7],
                         record[8]);
 
-                    gutil.log('csv2json:', gutil.colors.green('✔ ') + record[2]);
+                    //gutil.log('csv2json:', gutil.colors.green('✔ ') + record[2]);
+                    count++;
                     start3 = record[2].slice(0, 3);
                     if (files.hasOwnProperty(start3)) {
                         store = files[start3];
@@ -82,6 +84,7 @@ gulp.task('csv2json', ['prepare'], function (callback) {
                         }
                     }
 
+                    gutil.log('csv2json:', gutil.colors.green('✔ ') + 'count: ' + count);
                     callback(null, chunk);
                 });
         }));
@@ -89,7 +92,10 @@ gulp.task('csv2json', ['prepare'], function (callback) {
     gulp.src('./tmp/*.json')
         .pipe(replace("以下に掲載がない場合", ""))
         .pipe(gulp.dest('./dist/'))
-        .on('end', callback);
+        .on('end', function (callback) {
+            var del = require('del');
+            del(['./tmp/*'], callback);
+        });
 });
 
 gulp.task('default', ['prepare', 'csv2json']);
