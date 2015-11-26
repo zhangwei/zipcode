@@ -40,11 +40,13 @@ gulp.task('csv2json', ['prepare'], function (callback) {
 
     gulp.src('./tmp/*.csv')
         .pipe(through2.obj(function (chunk, enc, callback) {
-            var stream = fs.createReadStream(chunk.path);
-            var store = Buffers();
+            var rstream = fs.createReadStream(chunk.path);
+            var wstream = null;
+            var store = null;
+            var files = {};
 
             csv
-                .fromStream(stream)
+                .fromStream(rstream, {ignoreEmpty: true})
                 .on("data", function (record) {
                     var line = sprintf(
                         '"%s":["%s","%s","%s"],\n',
@@ -54,21 +56,49 @@ gulp.task('csv2json', ['prepare'], function (callback) {
                         record[7],
                         record[8]);
 
-                    store.push(new Buffer(line));
+                    gutil.log('csv2json:', gutil.colors.green('✔ ') + record[2]);
+
+                    var start3 = record[2];
+                    if(typeof start3 == 'undefined' || isNaN(start3)){
+                        gutil.log('csv2json:', gutil.colors.red('✘ ') + ' error:' + record[2]);
+                        this.emit("error");
+                    }else{
+                        gutil.log('csv2json:', gutil.colors.green('✔ ') + record[2] + ' done');
+                        start3 = start3.slice(0, 3);
+                        if (files.hasOwnProperty(start3)) {
+                            store = files[start3];
+                        } else {
+                            store = new Buffers();
+                            files[start3] = store;
+                        }
+                        store.push(new Buffer(line));
+                    }
+                })
+                .on('error', function(err){
+                    gutil.log('csv2json:', gutil.colors.red('✘ ') + err.message);
                 })
                 .on("end", function () {
-                    chunk.contents = store.toBuffer();
-                    chunk.contents = Buffer.concat([
-                        new Buffer('{\n', 'utf8'),
-                        chunk.contents.slice(0, chunk.contents.length - 2),
-                        new Buffer('\n}', 'utf8')
-                    ]);
+                    for (var bufs in files) {
+                        if (files.hasOwnProperty(bufs)) {
+                            wstream = fs.createWriteStream('./tmp/' + bufs + ".json");
+                            var contents = files[bufs].toBuffer();
+
+                            wstream.write(
+                                Buffer.concat([
+                                    new Buffer('{\n', 'utf8'),
+                                    contents.slice(0, contents.length - 2),
+                                    new Buffer('\n}', 'utf8')
+                                ]));
+                            wstream.end();
+                        }
+                    }
+
                     callback(null, chunk);
-                    gutil.log('csv2json:', gutil.colors.green('✔ ') + chunk.relative);
                 });
-        }))
+        }));
+
+    gulp.src('./tmp/*.json')
         .pipe(replace("以下に掲載がない場合", ""))
-        .pipe(rename({basename: 'all', extname: '.json'}))
         .pipe(gulp.dest('./dist/'))
         .on('end', callback);
 });
