@@ -17,7 +17,7 @@ gulp.task('download', ['clean'], function (callback) {
         .on('end', callback);
 });
 
-gulp.task('prepare', function (callback) {
+gulp.task('prepare', ['download'], function (callback) {
     var unzip = require("gulp-unzip");
     var convertEncoding = require('gulp-convert-encoding');
     var rename = require('gulp-rename');
@@ -25,20 +25,22 @@ gulp.task('prepare', function (callback) {
         .pipe(unzip())
         .pipe(convertEncoding({from: "cp932", to: "utf8"}))
         .pipe(rename({extname: '.csv'}))
-        .pipe(gulp.dest('./downloads/'))
+        .pipe(gulp.dest('./tmp/'))
         .on('end', callback);
 });
 
-gulp.task('csv2json', ['prepare'], function (callback) {
+gulp.task('csv2json', function (callback) {
     var through2 = require('through2');
     var replace = require('gulp-replace');
     var rename = require('gulp-rename');
     var fs = require('fs');
+    //var gracefulFs = require('graceful-fs');
+    //gracefulFs.gracefulify(fs);
     var csv = require('fast-csv');
     var Buffers = require('buffers');
     var sprintf = require('sprintf').sprintf;
 
-    gulp.src('./downloads/*.csv')
+    gulp.src('./tmp/*.csv')
         .pipe(through2.obj(function (chunk, enc, callback) {
             var rstream = fs.createReadStream(chunk.path);
             var wstream = null;
@@ -85,17 +87,18 @@ gulp.task('csv2json', ['prepare'], function (callback) {
                     }
 
                     gutil.log('csv2json:', gutil.colors.green('✔ ') + 'count: ' + count);
+
+                    gulp.src('./tmp/*.js')
+                        .pipe(replace("以下に掲載がない場合", ""))
+                        .pipe(gulp.dest('./dist/'))
+                        .on('end', function (callback) {
+                            var del = require('del');
+                            del(['./tmp/*.js'], callback);
+                        });
+
                     callback(null, chunk);
                 });
         }));
-
-    gulp.src('./tmp/*.js')
-        .pipe(replace("以下に掲載がない場合", ""))
-        .pipe(gulp.dest('./dist/'))
-        .on('end', function (callback) {
-            var del = require('del');
-            del(['./tmp/*'], callback);
-        });
 });
 
-gulp.task('default', ['prepare', 'csv2json']);
+gulp.task('default', ['csv2json']);
